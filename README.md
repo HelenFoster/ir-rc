@@ -16,3 +16,7 @@ tx_tone (Arduino)
 Reads a comma-separated list of durations (in microseconds) from Serial, and outputs the 38kHz modulated version on the specified pin, using the Arduino tone function. The first duration is the length of the first burst; the second duration is the length of the first space; and so on. The bursts seem to come out about 40us shorter than specified (and the spaces about 40us longer), but the devices I have tested are not fussy about this.
 
 From a handheld perspective, the Uno is too big, and the Nano does not seem to work on the Pandora without a hub.
+
+circuits/led_driver_5V
+----
+This circuit drives the LED with about 150mA while only drawing a maximum of 23mA from the power supply. It is useful for USB-connected devices like Arduino, on the Pandora's OTG port which can only provide 100mA. The signal output pin from the Arduino is connected to the gate of the MOSFET (signal is active high).
