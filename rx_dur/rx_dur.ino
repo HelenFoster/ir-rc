@@ -28,13 +28,14 @@ const int sensorPin = 11;
 const int ledPin = 13;
 
 const byte trigLevel = LOW;
-const int bufSize = 200;
-const unsigned long dur_us = 400000;
+const int bufSize = 800;
+const unsigned long timeout_us = 200000;
+const byte shift = 3;
 
-unsigned long buffer[bufSize];
+unsigned short buffer[bufSize];
 int bufPos;
 byte prevLevel;
-unsigned long startTime, prevTime;
+unsigned long prevTime;
 
 void setup() {
     Serial.begin(9600);
@@ -46,21 +47,20 @@ void startScan() {
     while (digitalRead(sensorPin) != trigLevel);
     bufPos = 0;
     prevLevel = trigLevel;
-    prevTime = startTime = micros();
+    prevTime = micros();
 }
 
 byte nextSample() {
     byte level = digitalRead(sensorPin);
     unsigned long time = micros();
     unsigned long tdiff = time - prevTime;
-    unsigned long tdur = time - startTime;
-    if (level != prevLevel || tdur > dur_us) {
-        buffer[bufPos] = tdiff;
+    if (level != prevLevel || tdiff > timeout_us) {
+        buffer[bufPos] = (unsigned short)(tdiff >> shift);
         bufPos ++;
         if (bufPos >= bufSize) {
             return 1;
         }
-        if (tdur > dur_us) {
+        if (tdiff > timeout_us) {
             return 2;
         }
         prevTime = time;
@@ -72,7 +72,7 @@ byte nextSample() {
 void sendResults() {
     int i;
     for (i = 0; i < bufPos; i ++) {
-        Serial.print(buffer[i]);
+        Serial.print(((unsigned long)(buffer[i])) << shift);
         Serial.print(',');
     }
     Serial.println();
