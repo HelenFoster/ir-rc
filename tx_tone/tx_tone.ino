@@ -1,7 +1,11 @@
 /*
 Reads a comma-separated list of durations (in microseconds) from Serial,
-and outputs the 38kHz modulated version on the specified pin,
-using the Arduino tone function.
+and outputs the 38kHz modulated version on the specified pin.
+
+If SPECIAL_PWM is defined, uses timer1 PWM on Arduino pin 10
+(intended for SparkFun Pro Micro, but should work on other ATmega32U4 boards, 
+and also ATmega328 which has the same timer1 settings).
+Otherwise uses the Arduino tone function, as in previous versions.
 
 Copyright (c) 2014, Helen Foster
 
@@ -24,8 +28,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-const int visibleLedPin = 13;
-const int irLedPin = 3;
+#define SPECIAL_PWM
+const int irLedPin = 10; //should be 10 for special PWM
+
+const int visibleLedPin = 17;
+const int visibleLedOn = LOW;
+const int visibleLedOff = HIGH;
 
 const int bufSize = 200;
 
@@ -38,16 +46,35 @@ void setup() {
     Serial.setTimeout(200);
     pinMode(visibleLedPin, OUTPUT);
     pinMode(irLedPin, OUTPUT);
+
+#ifdef SPECIAL_PWM
+    //fast PWM with period OCR1A: WGM13:0 = 15
+    //no clock prescaler (16MHz clock): CS12:0 = 1
+    TCCR1A = _BV(WGM11) | _BV(WGM10);
+    TCCR1B = _BV(WGM13) | _BV(WGM12)   | _BV(CS10);
+    OCR1A = 421; //for 38Khz
+    OCR1B = 100; //cycles it's on for
+#endif
 }
 
 void startBurst() {
-    digitalWrite(visibleLedPin, HIGH);
+    digitalWrite(visibleLedPin, visibleLedOn);
+#ifdef SPECIAL_PWM
+    //output B non-inverting: COM1B1:0 = 2
+    TCCR1A |= _BV(COM1B1);
+#else
     tone(irLedPin, 38000);
+#endif
 }
 
 void stopBurst() {
-    digitalWrite(visibleLedPin, LOW);
+    digitalWrite(visibleLedPin, visibleLedOff);
+#ifdef SPECIAL_PWM
+    //turn off PWM output
+    TCCR1A &= ~_BV(COM1B1);
+#else
     noTone(irLedPin);
+#endif
 }
 
 void loop() {
